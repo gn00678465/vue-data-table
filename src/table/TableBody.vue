@@ -4,12 +4,12 @@
   </Primitive>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Primitive } from 'vue-materials/primitive'
 import { clsx } from "clsx"
 import type { CommonProps } from './common.ts'
 
-const props = withDefaults(defineProps < TableBodyProps > (), {
+const props = withDefaults(defineProps<TableBodyProps>(), {
   class: undefined,
   style: undefined
 })
