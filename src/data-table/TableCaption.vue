@@ -1,15 +1,15 @@
 <template>
-  <Primitive as="td" :class="clsx(props.class)" :style="props.style">
+  <Primitive as="caption" :class="clsx(props.class)" :style="props.style">
     <slot />
   </Primitive>
 </template>
 
 <script setup lang="ts">
-import { Primitive } from 'vue-materials/primitive'
+import { Primitive } from 'vue-materials/primitive';
 import { clsx } from 'clsx'
 import type { CommonProps } from './common.ts'
 
-const props = withDefaults(defineProps<TableCellProps>(), {
+const props = withDefaults(defineProps<TableCaptionProps>(), {
   class: undefined,
   style: undefined
 })
@@ -17,7 +17,9 @@ const props = withDefaults(defineProps<TableCellProps>(), {
 </script>
 
 <script lang="ts">
-export interface TableCellProps extends CommonProps { }
+export interface TableCaptionProps extends CommonProps {
+
+}
 
 </script>
 

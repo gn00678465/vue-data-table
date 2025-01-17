@@ -11,11 +11,17 @@ import { Primitive } from "vue-materials/primitive"
 import type { CommonProps } from "./common";
 import { clsx } from 'clsx'
 
-const props = withDefaults(defineProps<CommonProps>(), {
+const props = withDefaults(defineProps<TableProps>(), {
   class: undefined,
   style: undefined
 })
 
+</script>
+
+<script lang="ts">
+export interface TableProps extends CommonProps {
+
+}
 
 </script>
 
