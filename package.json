@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@tanstack/vue-table": "^8.20.5",
@@ -22,8 +25,9 @@
     "typescript": "~5.6.2",
     "vite": "^6.0.5",
     "vite-plugin-dts": "^4.5.0",
-    "vue-tsc": "^2.2.0",
-    "vue-materials": "workspace:*"
+    "vitepress": "^1.5.0",
+    "vue-materials": "workspace:*",
+    "vue-tsc": "^2.2.0"
   },
   "peerDependencies": {
     "vue": "latest"
