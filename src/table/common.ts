@@ -1,6 +1,6 @@
-import type { CSSProperties, HTMLAttributes } from "vue";
+import type { CSSProperties, HTMLAttributes } from "vue"
 
-export type CommonProps = {
-  class?: HTMLAttributes['class']
+export interface CommonProps {
+  class?: HTMLAttributes["class"]
   style?: CSSProperties | string
 }
