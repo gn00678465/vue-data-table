@@ -1,0 +1,9 @@
+:where(.data-table-tr) {}
+
+:where(.data-table-th) {}
+
+:where(.data-table-td) {}
+
+:where(.data-table--bordered) {
+  border: 1px solid var(--border-color, transparent);
+}

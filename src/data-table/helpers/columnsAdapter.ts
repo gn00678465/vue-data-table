@@ -6,13 +6,15 @@ interface DataTableColumnBase<TData extends object> {
   key: string
   fix?: false | "right" | "left"
   width?: number
+  maxWidth?: number
+  minWidth?: number
   // FIXME: extension and fix type
   render?: ({ row }: { row: TData }) => VNodeChild
   title?: string | (() => VNodeChild)
 }
 
 interface DataTableColumnCell<TData extends object> extends DataTableColumnBase<TData> {
-  accessor: AccessorFn<TData> | DeepKeys<TData>
+  accessorKey: AccessorFn<TData> | DeepKeys<TData>
 }
 
 interface DataTableColumnGroup<TData extends object> {
@@ -101,7 +103,7 @@ function columnAdapter<TData extends object>(column: DataTableColumn<TData>, hel
   // if (isColumSelection(column)) return undefined
   // if (isColumnExpand(column)) return undefined
   if (isColumnCell(column))
-    return helper.accessor(column.accessor, columnOptions(column))
+    return helper.accessor(column.accessorKey, columnOptions(column))
   return helper.display(columnOptions(column))
 }
 

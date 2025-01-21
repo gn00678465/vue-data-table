@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { h, ref } from "vue"
-import { type CreateDataTableColumns, DataTable, type DataTableColumns } from "./data-table"
+import { type CreateDataTableColumns, DataTable, type DataTableColumns, type DataTableInst, type ExtraColumnOption } from "./data-table"
 
 interface Person {
   firstName: string
@@ -40,26 +40,47 @@ const defaultData: Person[] = [
 
 const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
   return [
-    columnHelper.group({
+    columnHelper.display({
+      id: "selection",
+      header: ({ table }) => h("input", {
+        type: "checkbox",
+        checked: table.getIsAllRowsSelected(),
+        onInput: table.getToggleAllRowsSelectedHandler(),
+      }),
+      cell: ({ row }) => h("input", {
+        type: "checkbox",
+        checked: row.getIsSelected(),
+        disabled: !row.getCanSelect(),
+        onInput: row.getToggleSelectedHandler(),
+      }),
+      size: 60,
+    }),
+    {
       header: "Name",
       footer: props => props.column.id,
       columns: [
-        columnHelper.accessor("firstName", {
+        {
+          accessorKey: "firstName",
           cell: info => info.getValue(),
           footer: props => props.column.id,
           enableResizing: false,
           size: 300,
-        }),
-        columnHelper.accessor(row => row.lastName, {
+          minSize: 0,
+          meta: {
+            class: "w-full",
+          },
+        },
+        {
+          accessorKey: "lastName",
           id: "lastName",
           cell: (info) => {
             return info.getValue()
           },
           header: () => h("span", "Last Name"),
           footer: props => props.column.id,
-        }),
+        },
       ],
-    }),
+    },
     columnHelper.group({
       header: "Info",
       id: "Info",
@@ -98,41 +119,87 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
 
 const columns = ref<DataTableColumns<Person>>([
   {
-    key: "fullName",
-    title: () => h("span", "_Name_"),
-    children: [
-      {
-        accessor: "firstName",
-        key: "firstName",
-        title: "First Name",
-        width: 300,
-      },
-      {
-        accessor: "lastName",
-        key: "lastName",
-        title: "Last Name",
-      },
-    ],
+    id: "selection",
+    header: ({ table }) => h("input", {
+      type: "checkbox",
+      checked: table.getIsAllRowsSelected(),
+      onInput: (e) => { table.getToggleAllRowsSelectedHandler()(e) },
+    }),
+    cell: ({ row }) => h("input", {
+      type: "checkbox",
+      checked: row.getIsSelected(),
+      disabled: !row.getCanSelect(),
+      onInput: (e) => { row.getToggleSelectedHandler()(e) },
+    }),
+    size: 60,
   },
   {
-    key: "action",
-    title: () => h("span", "Action"),
-    render: () => h("button", "action"),
+    accessorKey: "firstName",
+    cell: info => info.getValue(),
+    enableResizing: false,
+    size: 300,
+    minSize: 0,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "lastName",
+    id: "lastName",
+    cell: (info) => {
+      return info.getValue()
+    },
+    header: () => h("span", "Last Name"),
+  },
+  {
+    accessorKey: "action",
+    header: () => h("span", "Action"),
+    cell: () => h("button", "action"),
   },
 ])
 
 const data = ref(defaultData)
+
+const dataTableFunRef = ref<DataTableInst<Person>>()
+const dataTableArrRef = ref<DataTableInst<Person>>()
+
+const checkedKeys = ref<string[]>([])
 </script>
 
 <template>
   <div>
     <p>Data Table (Function)</p>
-    <DataTable :columns="createColumns" :data="data" :loading="false" />
+    <ul>
+      <li v-for="column of (dataTableFunRef?.allLeafColumns ?? [])" :key="column.id">
+        <input type="checkbox" :checked="column.getIsVisible()" :disabled="!column.getCanHide()">
+        <span>{{ column.id }}</span>
+      </li>
+    </ul>
+    <DataTable
+      ref="dataTableFunRef"
+      :columns="createColumns"
+      :data="data"
+      :loading="false"
+      style="--border-color: #000"
+    />
     <br>
     <p>Data Table (Array)</p>
-    <DataTable :columns="columns" :data="data" :loading="false" caption-side="bottom" />
+    <ul>
+      <li v-for="column of (dataTableArrRef?.allLeafColumns ?? [])" :key="column.id">
+        <input type="checkbox" :checked="column.getIsVisible()" :disabled="!column.getCanHide()">
+        <span>{{ column.id }}</span>
+      </li>
+    </ul>
+    <DataTable
+      ref="dataTableArrRef"
+      v-model:checked-row-keys="checkedKeys"
+      :columns="columns"
+      :data="data"
+      :loading="false"
+      :row-key="(row) => row.firstName"
+      caption-side="bottom"
+      style="--border-color: #000"
+    />
     <br>
-    <p>Empty Data Table (Function)</p>
+    <!-- <p>Empty Data Table (Function)</p>
     <DataTable :columns="createColumns" :data="[]" :loading="false">
       <template #empty>
         empty
@@ -144,7 +211,7 @@ const data = ref(defaultData)
       <template #empty>
         empty
       </template>
-    </DataTable>
+    </DataTable> -->
   </div>
 </template>
 
