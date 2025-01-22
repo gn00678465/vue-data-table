@@ -1,8 +1,8 @@
 <script setup lang="tsx" generic="TData extends Record<string, any>">
-import type { ColumnDef, ColumnHelper, PaginationState, RowSelectionState } from "@tanstack/vue-table"
+import type { ColumnDef, ColumnHelper, PaginationState, Row, RowSelectionState } from "@tanstack/vue-table"
 import { createColumnHelper, FlexRender, getCoreRowModel, getPaginationRowModel, useVueTable } from "@tanstack/vue-table"
 import { clsx } from "clsx"
-import { computed, onBeforeMount, toRefs, type VNodeChild } from "vue"
+import { computed, Fragment, onBeforeMount, toRefs, type VNodeChild } from "vue"
 import {
   Table,
   TableBody,
@@ -28,10 +28,10 @@ const props = withDefaults(defineProps<DataTableProps<TData>>(), {
   loading: false,
   captionSide: "bottom",
   bordered: true,
-  storage: undefined,
   rowKey: undefined,
   remote: false,
   pagination: false,
+  expandable: undefined,
 })
 
 const emits = defineEmits<{
@@ -63,24 +63,49 @@ const { pagination, setPagination } = usePaginationPrepare(props.pagination, (ar
 })
 
 /** selection state */
-const [rowSelectRowKeys] = defineModel<string[]>("checked-row-keys", {
+const [checkedRowKeys] = defineModel<string[]>("checked-row-keys", {
   default: [],
 })
 const _rowSelectionState = computed<RowSelectionState>({
   get() {
-    return rowSelectRowKeys.value.reduce((obj, key) => {
+    return checkedRowKeys.value.reduce((obj, key) => {
       obj[key] = true
       return obj
     }, {} as RowSelectionState)
   },
   set(v) {
-    rowSelectRowKeys.value = Object.keys(v)
+    checkedRowKeys.value = Object.keys(v)
   },
 })
 
+/** expanded state */
+const [expandedRowKeys] = defineModel<string[]>("expanded-row-keys", {
+  default: [],
+})
+
+const _expandedState = computed({
+  get() {
+    return expandedRowKeys.value.reduce((obj, key) => {
+      obj[key] = true
+      return obj
+    }, {} as Record<string, boolean>)
+  },
+  set(v) {
+    expandedRowKeys.value = Object.keys(v)
+  },
+})
+
+/**
+ * table core
+ */
 const table = useVueTable<TData>({
   getRowId: props.rowKey,
   getCoreRowModel: getCoreRowModel(),
+  get getRowCanExpand() {
+    return props.expandable
+  },
+  paginateExpandedRows: false,
+  manualExpanding: true,
   manualPagination: props.remote,
   getPaginationRowModel: !props.remote ? getPaginationRowModel() : undefined,
   get rowCount() {
@@ -110,10 +135,12 @@ const table = useVueTable<TData>({
       }
       return undefined
     },
+    get expanded() { return _expandedState.value },
   },
   enableRowSelection: true,
   onRowSelectionChange: updateOrValue => valueUpdater(updateOrValue, _rowSelectionState),
   onPaginationChange: setPagination,
+  onExpandedChange: updateOrValue => valueUpdater(updateOrValue, _expandedState),
 })
 const columnspan = computed(() => {
   return table.getAllLeafColumns().length
@@ -153,15 +180,26 @@ function renderTableHeader() {
 function renderTableBody() {
   return (
     table.getRowModel().rows.map(row => (
-      <TableRow key={row.id}>
+      <Fragment>
+        <TableRow key={row.id}>
+          {
+            row.getVisibleCells().map(cell => (
+              <TableCell key={cell.id}>
+                <FlexRender render={cell.column.columnDef.cell} props={cell.getContext()} />
+              </TableCell>
+            ))
+          }
+        </TableRow>
         {
-          row.getVisibleCells().map(cell => (
-            <TableCell key={cell.id}>
-              <FlexRender render={cell.column.columnDef.cell} props={cell.getContext()} />
-            </TableCell>
-          ))
+          props.renderExpand && row.getIsExpanded() && (
+            <TableRow>
+              <TableCell colspan={row.getVisibleCells().length}>
+                { props.renderExpand(row) }
+              </TableCell>
+            </TableRow>
+          )
         }
-      </TableRow>
+      </Fragment>
     ))
   )
 }
@@ -212,11 +250,20 @@ interface DataTablePaginationProps {
   remote?: boolean
 }
 
-export type CreateDataTableColumns<TData extends Record<string, any>> = (helper: ColumnHelper<TData>) => ColumnDef<TData>[]
+/** expanded props */
+interface DataTableExpandProps<TData extends Record<string, any>> {
+  expandable?: (row: Row<TData>) => boolean
+  renderExpand?: (row: Row<TData>) => VNodeChild
+}
 
-export type DataTableColumns<TData> = ColumnDef<TData>[]
+export type DataTableColumns<TData extends Record<string, any>> = ColumnDef<TData>[]
 
-export interface DataTableProps<TData extends Record<string, any>> extends DataTableBaseProps<TData>, DataTablePaginationProps {
+export type CreateDataTableColumns<TData extends Record<string, any>> = (helper: ColumnHelper<TData>) => DataTableColumns<TData>
+
+export interface DataTableProps<TData extends Record<string, any>> extends
+  DataTableBaseProps<TData>,
+  DataTablePaginationProps,
+  DataTableExpandProps<TData> {
   columns?: DataTableColumns<TData> | CreateDataTableColumns<TData>
 }
 </script>

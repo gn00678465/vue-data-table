@@ -41,18 +41,16 @@ const defaultData: Person[] = [
 const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
   return [
     columnHelper.display({
-      id: "selection",
-      header: ({ table }) => h("input", {
-        type: "checkbox",
-        checked: table.getIsAllRowsSelected(),
-        onInput: table.getToggleAllRowsSelectedHandler(),
-      }),
-      cell: ({ row }) => h("input", {
-        type: "checkbox",
-        checked: row.getIsSelected(),
-        disabled: !row.getCanSelect(),
-        onInput: row.getToggleSelectedHandler(),
-      }),
+      id: "expand",
+      header: () => null,
+      cell: ({ row }) => {
+        return row.getCanExpand()
+          ? h("button", {
+              onClick: row.getToggleExpandedHandler(),
+              style: { cursor: "pointer" },
+            }, [row.getIsExpanded() ? "👇" : "👉"])
+          : "🔵"
+      },
       size: 60,
     }),
     {
@@ -162,6 +160,7 @@ window.setTimeout(() => {
   data.value = [...data.value].concat(defaultData)
 }, 10000)
 
+const expandedKeys = ref<string[]>([])
 const checkedKeys = ref<string[]>([])
 
 const pagination = reactive({
@@ -175,11 +174,15 @@ const pagination = reactive({
   <div>
     <p>Data Table (Function)</p>
     <DataTable
+      v-model:expanded-row-keys="expandedKeys"
       :columns="createColumns"
       :data="data"
       :loading="false"
+      :expandable="(row) => { return true }"
+      :render-expand="(row) => h('pre', JSON.stringify(row.original))"
       style="--border-color: #000"
     />
+    <p>Expanded Keys: {{ expandedKeys }}</p>
     <br>
     <p>Data Table (Array)</p>
     <DataTable
@@ -234,6 +237,7 @@ const pagination = reactive({
         </div>
       </template>
     </DataTable>
+    <p>Checked Keys: {{ checkedKeys }}</p>
     <br>
     <!-- <p>Empty Data Table (Function)</p>
     <DataTable :columns="createColumns" :data="[]" :loading="false">

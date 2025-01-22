@@ -2,13 +2,14 @@
 
 - [x] DataTable component
 - [x] Row selection
-- [] Row expanded
+- [x] Row expanded
 - [x] Pagination
-- [] Column ordering
-- [] Column pinning
-- [] Column sizing
-- [] Column Visibility
-- [] Column filtering
+- [ ] Column ordering
+- [ ] Column pinning
+- [ ] Column sizing
+- [ ] Column Visibility
+- [ ] Column filtering
+- [ ] Context menu
 
 ## Props
 ```ts
@@ -123,3 +124,40 @@ interface API {
   resetPagination: (defaultState?: boolean) => void
 }
 ```
+
+### Row expanded
+
+**Usage**
+
+```ts
+const columns = [
+  columnHelper.display({
+    id: "expand",
+    header: () => null,
+    cell: ({ row }) => {
+      return row.getCanExpand()
+        ? h("button", {
+            onClick: row.getToggleExpandedHandler(),
+            style: { cursor: "pointer" },
+          }, [row.getIsExpanded() ? "👇" : "👉"])
+        : "🔵"
+    },
+    size: 60,
+  }),
+  // other options
+]
+```
+
+**Props**
+
+```ts
+interface Props {
+  expandedRowKey?: string[]
+  expandable?: (row: Row<TData>) => boolean
+  renderExpand?: (row: Row<TData>) => VNodeChild
+}
+```
+
+**Event**
+
+- on-update:expanded-row-keys: `(keys: string[]) => void`
