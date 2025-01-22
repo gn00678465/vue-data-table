@@ -27,6 +27,7 @@ interface DataTableProps<TData extends Record<string, any>> {
 
 ### Row selection
 
+**Usage**
 ```ts
 const columns = [
   {
@@ -58,39 +59,34 @@ const columns = [
       onInput: row.getToggleSelectedHandler(),
     }),
   }),
+  // other column options
 ]
 ```
+
+**Props**
+
+| Prop        | Type        | Default     | Description |
+| ----------- | ----------- | ----------- | ----------- |
+| checked-row-keys | Array<string> | undefined |        |
+| on-update:checked-row-keys | (keys: Array<string>) => void | undefined |        |
 
 ### Pagination
 
 **Props**
-```tsx
-<DataTable
-  remote={true}
-  pagination={{ pageIndex: 0, pageSize: 10, rowCount: 100 }}
->
-</DataTable>
 
-// Props types
-interface Props {
-  pagination?: false | PaginationProps
-  remote?: boolean
-}
+| Prop        | Type        | Default     | Description |
+| ----------- | ----------- | ----------- | ----------- |
+| remote | boolean | false | use client-side pagination or server-side pagination |
+| pagination | false | PaginationProps | false |        |
+| on-update:pagination | (pagination: Pagination) => void | undefined |
 
+```ts
 interface PaginationProps {
   pageIndex?: number
   pageSize?: number
   rowCount?: number
 }
-```
 
-- remote: use client-side pagination or server-side pagination
-
-**Event**
-
-- on-update:pagination: `(pagination: Pagination) => void`
-
-```ts
 interface Pagination {
   pageIndex: number
   pageSize: number
@@ -140,24 +136,18 @@ const columns = [
             onClick: row.getToggleExpandedHandler(),
             style: { cursor: "pointer" },
           }, [row.getIsExpanded() ? "👇" : "👉"])
-        : "🔵"
-    },
-    size: 60,
+        : ""
+    }
   }),
-  // other options
+  // other column options
 ]
 ```
 
 **Props**
 
-```ts
-interface Props {
-  expandedRowKey?: string[]
-  expandable?: (row: Row<TData>) => boolean
-  renderExpand?: (row: Row<TData>) => VNodeChild
-}
-```
-
-**Event**
-
-- on-update:expanded-row-keys: `(keys: string[]) => void`
+| Prop        | Type        | Default     | Description |
+| ----------- | ----------- | ----------- | ----------- |
+| expanded-row-key | Array<string> | undefined | |
+| expandable | (row: Row<TData>) => boolean | undefined | |
+| render-expand | (row: Row<TData>) => VNodeChild | undefined | |
+| on-update:expanded-row-keys | (keys: Array<string>) => void | undefined | |
