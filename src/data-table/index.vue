@@ -1,5 +1,5 @@
 <script setup lang="tsx" generic="TData extends Record<string, any>">
-import type { ColumnDef, ColumnHelper, PaginationState, Row, RowSelectionState } from "@tanstack/vue-table"
+import type { Table as _Table, ColumnDef, ColumnHelper, PaginationState, Row, RowSelectionState, Updater, VisibilityState } from "@tanstack/vue-table"
 import { createColumnHelper, FlexRender, getCoreRowModel, getPaginationRowModel, useVueTable } from "@tanstack/vue-table"
 import { clsx } from "clsx"
 import { computed, Fragment, onBeforeMount, toRefs, type VNodeChild } from "vue"
@@ -32,6 +32,8 @@ const props = withDefaults(defineProps<DataTableProps<TData>>(), {
   remote: false,
   pagination: false,
   expandable: undefined,
+  visibilityState: undefined,
+  onUpdateVisibilityState: undefined,
 })
 
 const emits = defineEmits<{
@@ -136,11 +138,13 @@ const table = useVueTable<TData>({
       return undefined
     },
     get expanded() { return _expandedState.value },
+    get columnVisibility() { return props.visibilityState },
   },
   enableRowSelection: true,
   onRowSelectionChange: updateOrValue => valueUpdater(updateOrValue, _rowSelectionState),
   onPaginationChange: setPagination,
   onExpandedChange: updateOrValue => valueUpdater(updateOrValue, _expandedState),
+  onColumnVisibilityChange: props.onUpdateVisibilityState,
 })
 const columnspan = computed(() => {
   return table.getAllLeafColumns().length
@@ -231,6 +235,10 @@ function renderTableFooter() {
   )
 }
 
+defineExpose<DataTableInst<TData>>({
+  tableInstance: table,
+})
+
 onBeforeMount(() => {
 })
 </script>
@@ -256,6 +264,12 @@ interface DataTableExpandProps<TData extends Record<string, any>> {
   renderExpand?: (row: Row<TData>) => VNodeChild
 }
 
+/** extra props */
+interface DataTableExtraProps {
+  visibilityState?: VisibilityState
+  onUpdateVisibilityState?: (updateOrValue: Updater<VisibilityState>) => void
+}
+
 export type DataTableColumns<TData extends Record<string, any>> = ColumnDef<TData>[]
 
 export type CreateDataTableColumns<TData extends Record<string, any>> = (helper: ColumnHelper<TData>) => DataTableColumns<TData>
@@ -263,8 +277,13 @@ export type CreateDataTableColumns<TData extends Record<string, any>> = (helper:
 export interface DataTableProps<TData extends Record<string, any>> extends
   DataTableBaseProps<TData>,
   DataTablePaginationProps,
-  DataTableExpandProps<TData> {
+  DataTableExpandProps<TData>,
+  DataTableExtraProps {
   columns?: DataTableColumns<TData> | CreateDataTableColumns<TData>
+}
+
+export interface DataTableInst<TData extends Record<string, any>> {
+  tableInstance: _Table<TData>
 }
 </script>
 

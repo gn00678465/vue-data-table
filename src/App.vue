@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, h, reactive, ref } from "vue"
-import { type CreateDataTableColumns, DataTable, type DataTableColumns } from "./data-table"
+import { type CreateDataTableColumns, DataTable, type DataTableColumns, type DataTableInst, useDataTable } from "./data-table"
 
 interface Person {
   firstName: string
@@ -156,12 +156,13 @@ const columns = ref<DataTableColumns<Person>>([
 
 const data = ref(defaultData)
 
-window.setTimeout(() => {
-  data.value = [...data.value].concat(defaultData)
-}, 10000)
-
 const expandedKeys = ref<string[]>([])
 const checkedKeys = ref<string[]>([])
+
+const DataTableFunRef = ref<DataTableInst<Person>>()
+const DataTableArrRef = ref<DataTableInst<Person>>()
+
+const { visibilityState, onUpdateVisibilityState, columnVisibilityConfig } = useDataTable(DataTableFunRef)
 
 const pagination = reactive({
   pageIndex: 0,
@@ -173,19 +174,32 @@ const pagination = reactive({
 <template>
   <div>
     <p>Data Table (Function)</p>
+    <ul>
+      <li v-for="col of columnVisibilityConfig" :key="col.key">
+        <label>
+          <input type="checkbox" :checked="col.visibility" @input="col.onChange">
+          {{ col.key }}
+        </label>
+      </li>
+    </ul>
     <DataTable
+      ref="DataTableFunRef"
       v-model:expanded-row-keys="expandedKeys"
       :columns="createColumns"
       :data="data"
       :loading="false"
-      :expandable="(row) => { return true }"
+      :row-key="(row) => row.firstName"
+      :expandable="() => { return true }"
       :render-expand="(row) => h('pre', JSON.stringify(row.original))"
+      :visibility-state="visibilityState"
+      :on-update-visibility-state="onUpdateVisibilityState"
       style="--border-color: #000"
     />
     <p>Expanded Keys: {{ expandedKeys }}</p>
     <br>
     <p>Data Table (Array)</p>
     <DataTable
+      ref="DataTableArrRef"
       v-model:checked-row-keys="checkedKeys"
       :columns="columns"
       :data="data"
@@ -194,6 +208,7 @@ const pagination = reactive({
       :remote="true"
       caption-side="bottom"
       style="--border-color: #000"
+      :visibility-state="visibilityState"
       :pagination="pagination"
     >
       <template #pagination="api">
