@@ -1,8 +1,8 @@
 <script setup lang="tsx" generic="TData extends Record<string, any>">
-import type { Column, ColumnDef, ColumnHelper, RowSelectionState } from "@tanstack/vue-table"
-import { createColumnHelper, FlexRender, getCoreRowModel, useVueTable } from "@tanstack/vue-table"
+import type { ColumnDef, ColumnHelper, PaginationState, RowSelectionState } from "@tanstack/vue-table"
+import { createColumnHelper, FlexRender, getCoreRowModel, getPaginationRowModel, useVueTable } from "@tanstack/vue-table"
 import { clsx } from "clsx"
-import { computed, type ComputedRef, onBeforeMount, reactive, ref, toRefs, type VNodeChild, watch, withMemo } from "vue"
+import { computed, onBeforeMount, toRefs, type VNodeChild } from "vue"
 import {
   Table,
   TableBody,
@@ -14,8 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "../table"
-import { useColumnStates, type UseColumnStatesReturn, valueUpdater } from "./helpers"
-import style from "./style.module.css"
+import { valueUpdater } from "./helpers"
+import { usePaginationAPI, type UsePaginationAPIReturn } from "./helpers/usePaginationAPI"
+import { type PaginationProps, usePaginationPrepare } from "./helpers/usePaginationPrepare"
 
 defineOptions({
   name: "DataTable",
@@ -29,11 +30,18 @@ const props = withDefaults(defineProps<DataTableProps<TData>>(), {
   bordered: true,
   storage: undefined,
   rowKey: undefined,
+  remote: false,
+  pagination: false,
 })
+
+const emits = defineEmits<{
+  "update:pagination": [pagination: PaginationState]
+}>()
 
 const slots = defineSlots<{
   caption: () => VNodeChild
   empty: () => VNodeChild
+  pagination: (api: UsePaginationAPIReturn) => VNodeChild
 }>()
 
 const { data, captionSide, bordered } = toRefs(props)
@@ -49,8 +57,10 @@ const _columns = computed(() => {
   return []
 })
 
-/** column state */
-const { columnVisibility } = useColumnStates()
+/** pagination */
+const { pagination, setPagination } = usePaginationPrepare(props.pagination, (arg) => {
+  emits("update:pagination", arg)
+})
 
 /** selection state */
 const [rowSelectRowKeys] = defineModel<string[]>("checked-row-keys", {
@@ -71,6 +81,13 @@ const _rowSelectionState = computed<RowSelectionState>({
 const table = useVueTable<TData>({
   getRowId: props.rowKey,
   getCoreRowModel: getCoreRowModel(),
+  manualPagination: props.remote,
+  getPaginationRowModel: !props.remote ? getPaginationRowModel() : undefined,
+  get rowCount() {
+    if (props.pagination && props.remote)
+      return props.pagination.rowCount
+    return undefined
+  },
   get columns() {
     return _columns.value
   },
@@ -86,15 +103,22 @@ const table = useVueTable<TData>({
     maxSize: 0,
   },
   state: {
-    get columnVisibility() { return columnVisibility.value },
     get rowSelection() { return _rowSelectionState.value },
+    get pagination() {
+      if (props.pagination) {
+        return pagination.value
+      }
+      return undefined
+    },
   },
   enableRowSelection: true,
   onRowSelectionChange: updateOrValue => valueUpdater(updateOrValue, _rowSelectionState),
+  onPaginationChange: setPagination,
 })
 const columnspan = computed(() => {
   return table.getAllLeafColumns().length
 })
+const paginationAPI = usePaginationAPI(table)
 
 /**
  * Table header render function
@@ -169,22 +193,6 @@ function renderTableFooter() {
   )
 }
 
-/**
- * column visibility options
- */
-const extraColumnOptions = computed<ExtraColumnOption<TData>[]>(() => table.getAllLeafColumns()
-  .map(col => ({
-    id: col.id,
-    disabled: !col.getCanHide(),
-    column: col,
-  })),
-)
-
-defineExpose<DataTableInst<TData>>({
-  extraColumnOptions: extraColumnOptions.value,
-  allLeafColumns: computed(table.getAllLeafColumns).value,
-})
-
 onBeforeMount(() => {
 })
 </script>
@@ -196,33 +204,26 @@ interface DataTableBaseProps<TData extends Record<string, any>> {
   loading?: boolean
   captionSide?: "top" | "bottom"
   bordered?: boolean
-  storage?: "cookie" | "localStorage" | "sessionStorage"
-  storageKey?: string
 }
 
-export interface ExtraColumnOption<TData extends Record<string, any>> {
-  id: string
-  disabled: boolean
-  column: Column<TData>
+/** pagination props */
+interface DataTablePaginationProps {
+  pagination?: false | PaginationProps
+  remote?: boolean
 }
 
 export type CreateDataTableColumns<TData extends Record<string, any>> = (helper: ColumnHelper<TData>) => ColumnDef<TData>[]
 
 export type DataTableColumns<TData> = ColumnDef<TData>[]
 
-export interface DataTableProps<TData extends Record<string, any>> extends DataTableBaseProps<TData> {
+export interface DataTableProps<TData extends Record<string, any>> extends DataTableBaseProps<TData>, DataTablePaginationProps {
   columns?: DataTableColumns<TData> | CreateDataTableColumns<TData>
-}
-
-export interface DataTableInst<TData extends Record<string, any>> {
-  extraColumnOptions: ExtraColumnOption<TData>[]
-  allLeafColumns: Column<TData>[]
 }
 </script>
 
 <template>
-  <div :class="clsx('w-full', 'relative', 'overflow-auto', [bordered && 'data-table--bordered'])">
-    <Table :class="clsx('w-full')">
+  <div :class="clsx('w-full', 'relative', 'overflow-auto')">
+    <Table :class="clsx('w-full', [bordered && 'data-table--bordered'])">
       <TableCaption
         v-if="!!slots?.caption"
         :class="clsx(
@@ -247,6 +248,7 @@ export interface DataTableInst<TData extends Record<string, any>> {
       </TableBody>
       <component :is="renderTableFooter" v-if="!isEmpty" />
     </Table>
+    <slot name="pagination" v-bind="paginationAPI" />
   </div>
 </template>
 

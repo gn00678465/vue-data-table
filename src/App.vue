@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { h, ref } from "vue"
-import { type CreateDataTableColumns, DataTable, type DataTableColumns, type DataTableInst, type ExtraColumnOption } from "./data-table"
+import { computed, h, reactive, ref } from "vue"
+import { type CreateDataTableColumns, DataTable, type DataTableColumns } from "./data-table"
 
 interface Person {
   firstName: string
@@ -158,23 +158,23 @@ const columns = ref<DataTableColumns<Person>>([
 
 const data = ref(defaultData)
 
-const dataTableFunRef = ref<DataTableInst<Person>>()
-const dataTableArrRef = ref<DataTableInst<Person>>()
+window.setTimeout(() => {
+  data.value = [...data.value].concat(defaultData)
+}, 10000)
 
 const checkedKeys = ref<string[]>([])
+
+const pagination = reactive({
+  pageIndex: 0,
+  pageSize: 1,
+  rowCount: computed(() => data.value.length),
+})
 </script>
 
 <template>
   <div>
     <p>Data Table (Function)</p>
-    <ul>
-      <li v-for="column of (dataTableFunRef?.allLeafColumns ?? [])" :key="column.id">
-        <input type="checkbox" :checked="column.getIsVisible()" :disabled="!column.getCanHide()">
-        <span>{{ column.id }}</span>
-      </li>
-    </ul>
     <DataTable
-      ref="dataTableFunRef"
       :columns="createColumns"
       :data="data"
       :loading="false"
@@ -182,22 +182,58 @@ const checkedKeys = ref<string[]>([])
     />
     <br>
     <p>Data Table (Array)</p>
-    <ul>
-      <li v-for="column of (dataTableArrRef?.allLeafColumns ?? [])" :key="column.id">
-        <input type="checkbox" :checked="column.getIsVisible()" :disabled="!column.getCanHide()">
-        <span>{{ column.id }}</span>
-      </li>
-    </ul>
     <DataTable
-      ref="dataTableArrRef"
       v-model:checked-row-keys="checkedKeys"
       :columns="columns"
       :data="data"
       :loading="false"
       :row-key="(row) => row.firstName"
+      :remote="true"
       caption-side="bottom"
       style="--border-color: #000"
-    />
+      :pagination="pagination"
+    >
+      <template #pagination="api">
+        <div class="pagination">
+          {{ JSON.stringify(api) }}
+          <button
+            class="border rounded p-1"
+            :disabled="!api.getCanPreviousPage()"
+            @click="() => api.setPageIndex(0)"
+          >
+            «
+          </button>
+          <button
+            class="border rounded p-1"
+            :disabled="!api.getCanPreviousPage()"
+            @click="() => api.previousPage()"
+          >
+            ‹
+          </button>
+          <button
+            class="border rounded p-1"
+            :disabled="!api.getCanNextPage()"
+            @click="() => api.nextPage()"
+          >
+            ›
+          </button>
+          <button
+            class="border rounded p-1"
+            :disabled="!api.getCanNextPage()"
+            @click="() => api.setPageIndex(api.pageCount - 1)"
+          >
+            »
+          </button>
+          <span class="pagination-content">
+            <div>Total</div>
+            <strong>
+              {{ api.page + 1 }} of
+              {{ api.rowCount }}
+            </strong>
+          </span>
+        </div>
+      </template>
+    </DataTable>
     <br>
     <!-- <p>Empty Data Table (Function)</p>
     <DataTable :columns="createColumns" :data="[]" :loading="false">
@@ -215,4 +251,20 @@ const checkedKeys = ref<string[]>([])
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  column-gap: 8px;
+  margin-top: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.pagination-content {
+  display: flex;
+  align-items: center;
+  column-gap: 4px;
+}
+</style>
