@@ -16,7 +16,9 @@ import {
 } from "../table"
 import { usePaginationAPI, type UsePaginationAPIReturn } from "./composables/usePaginationAPI"
 import { type PaginationProps, usePaginationPrepare } from "./composables/usePaginationPrepare"
-import { valueUpdater } from "./helpers"
+import css from "./css.module.css"
+import { initialDevMode, valueUpdater } from "./helpers"
+import { renderIconSeparator } from "./renderIconSeparator"
 
 defineOptions({
   name: "DataTable",
@@ -34,6 +36,8 @@ const props = withDefaults(defineProps<DataTableProps<TData>>(), {
   expandable: undefined,
   visibilityState: undefined,
   onUpdateVisibilityState: undefined,
+  columnSizingState: undefined,
+  onUpdateColumnSizingState: undefined,
 })
 
 const emits = defineEmits<{
@@ -121,9 +125,6 @@ const table = useVueTable<TData>({
   get data() {
     return data?.value ?? []
   },
-  debugTable: import.meta.env.DEV,
-  debugHeaders: import.meta.env.DEV,
-  debugColumns: import.meta.env.DEV,
   defaultColumn: {
     size: 0,
     minSize: 0,
@@ -151,10 +152,23 @@ const columnspan = computed(() => {
 })
 const paginationAPI = usePaginationAPI(table)
 
+/** Table colgroup render function */
+function renderColgroup(table: _Table<TData>) {
+  return (
+    <colgroup>
+      {
+        table.getAllLeafColumns().map(col => (
+          <col key={col.id} />
+        ))
+      }
+    </colgroup>
+  )
+}
+
 /**
  * Table header render function
  */
-function renderTableHeader() {
+function renderTableHeader(table: _Table<TData>) {
   return (
     table.getHeaderGroups().map(headerGroup => (
       <TableRow key={headerGroup.id}>
@@ -168,7 +182,24 @@ function renderTableHeader() {
               {
                 header.isPlaceholder
                   ? null
-                  : <FlexRender render={header.column.columnDef.header} props={header.getContext()} />
+                  : (
+                      <div class={css["data-table-header"]}>
+                        <div>
+                          <FlexRender render={header.column.columnDef.header} props={header.getContext()} />
+                        </div>
+                        {
+                          header.column.getCanResize() && !header.subHeaders.length && (
+                            <div
+                              class={css["data-table-col-separator"]}
+                              onMousedown={header.getResizeHandler()}
+                              onTouchstart={header.getResizeHandler()}
+                            >
+                              { renderIconSeparator({ class: css["data-table-icon-separator"] }) }
+                            </div>
+                          )
+                        }
+                      </div>
+                    )
               }
             </TableHead>
           ))
@@ -181,7 +212,7 @@ function renderTableHeader() {
 /**
  * Table body render function
  */
-function renderTableBody() {
+function renderTableBody(table: _Table<TData>) {
   return (
     table.getRowModel().rows.map(row => (
       <Fragment>
@@ -189,7 +220,9 @@ function renderTableBody() {
           {
             row.getVisibleCells().map(cell => (
               <TableCell key={cell.id}>
-                <FlexRender render={cell.column.columnDef.cell} props={cell.getContext()} />
+                <div class={css["data-table-cell"]}>
+                  <FlexRender render={cell.column.columnDef.cell} props={cell.getContext()} />
+                </div>
               </TableCell>
             ))
           }
@@ -198,7 +231,9 @@ function renderTableBody() {
           props.renderExpand && row.getIsExpanded() && (
             <TableRow>
               <TableCell colspan={row.getVisibleCells().length}>
-                { props.renderExpand(row) }
+                <div class={css["data-table-cell"]}>
+                  { props.renderExpand(row) }
+                </div>
               </TableCell>
             </TableRow>
           )
@@ -211,7 +246,7 @@ function renderTableBody() {
 /**
  * Table footer render function
  */
-function renderTableFooter() {
+function renderTableFooter(table: _Table<TData>) {
   return (
     <TableFooter>
       {
@@ -219,11 +254,21 @@ function renderTableFooter() {
           <TableRow key={footerGroup.id}>
             {
               footerGroup.headers.map(header => (
-                <TableHead key={header.id} colspan={header.colSpan}>
+                <TableHead
+                  key={header.id}
+                  colspan={header.colSpan || 1}
+                  rowspan={header.rowSpan || 1}
+                >
                   {
                     header.isPlaceholder
                       ? null
-                      : <FlexRender render={header.column.columnDef.footer} props={header.getContext()} />
+                      : (
+                          <div class={css["data-table-header"]}>
+                            <div>
+                              <FlexRender render={header.column.columnDef.footer} props={header.getContext()} />
+                            </div>
+                          </div>
+                        )
                   }
                 </TableHead>
               ))
@@ -240,6 +285,7 @@ defineExpose<DataTableInst<TData>>({
 })
 
 onBeforeMount(() => {
+  initialDevMode(table)
 })
 </script>
 
@@ -288,37 +334,42 @@ export interface DataTableInst<TData extends Record<string, any>> {
 </script>
 
 <template>
-  <div :class="clsx('w-full', 'relative', 'overflow-auto')">
-    <Table :class="clsx('w-full', [bordered && 'data-table--bordered'])">
-      <TableCaption
-        v-if="!!slots?.caption"
-        :class="clsx(
-          { 'cation-top': captionSide === 'top' },
-          { 'cation-bottom': captionSide === 'bottom' },
-        )"
-      >
-        <slot name="caption" />
-      </TableCaption>
-      <TableHeader>
-        <component :is="renderTableHeader" />
-      </TableHeader>
-      <TableBody>
-        <template v-if="!isEmpty">
-          <component :is="renderTableBody" />
-        </template>
-        <template v-else>
-          <TableEmpty :colspan="columnspan">
-            <slot name="empty" />
-          </TableEmpty>
-        </template>
-      </TableBody>
-      <component :is="renderTableFooter" v-if="!isEmpty" />
-    </Table>
+  <div>
+    <div :class="clsx('w-full', 'relative', 'overflow-auto')">
+      <Table :class="clsx('w-full', [bordered && 'data-table--bordered'])">
+        <TableCaption
+          v-if="!!slots?.caption"
+          :class="clsx(
+            { 'cation-top': captionSide === 'top' },
+            { 'cation-bottom': captionSide === 'bottom' },
+          )"
+        >
+          <slot name="caption" />
+        </TableCaption>
+        <component :is="() => renderColgroup(table)" />
+        <TableHeader>
+          <component :is="() => renderTableHeader(table)" />
+        </TableHeader>
+        <TableBody>
+          <template v-if="!isEmpty">
+            <component :is="() => renderTableBody(table)" />
+          </template>
+          <template v-else>
+            <TableEmpty :colspan="columnspan">
+              <slot name="empty" />
+            </TableEmpty>
+          </template>
+        </TableBody>
+        <component :is="() => renderTableFooter(table)" v-if="!isEmpty" />
+      </Table>
+    </div>
     <slot name="pagination" v-bind="paginationAPI" />
   </div>
 </template>
 
 <style>
+@import url('./assets/reset.css');
+
 :where(.overflow-auto) {
   overflow: auto;
 }

@@ -1,6 +1,6 @@
 import type { Column, Table, Updater, VisibilityState } from "@tanstack/vue-table"
 import type { ComputedRef, Ref } from "vue"
-import { computed, readonly, ref, watch } from "vue"
+import { computed, ref, watch } from "vue"
 import { type TableStorageManager, valueUpdater } from "../helpers"
 
 export interface UseTableVisibilityReturn {
@@ -59,7 +59,7 @@ export function useTableVisibility<TData extends Record<string, any>>(
   initialize()
 
   return {
-    visibilityState: readonly(_visibilityState),
+    visibilityState: _visibilityState,
     onUpdateVisibilityState: (updateOrValue: Updater<VisibilityState>) => {
       valueUpdater(updateOrValue, _visibilityState)
     },

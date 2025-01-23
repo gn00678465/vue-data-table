@@ -51,6 +51,7 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
             }, [row.getIsExpanded() ? "👇" : "👉"])
           : "🔵"
       },
+      enableResizing: false,
       size: 60,
     }),
     {
@@ -61,11 +62,12 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
           accessorKey: "firstName",
           cell: info => info.getValue(),
           footer: props => props.column.id,
-          enableResizing: false,
+          enableResizing: true,
           size: 300,
           minSize: 0,
           meta: {
             class: "w-full",
+            titleAlign: "left",
           },
         },
         {
@@ -87,6 +89,9 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
         columnHelper.accessor("age", {
           header: () => "Age",
           footer: props => props.column.id,
+          meta: {
+            align: "right",
+          },
         }),
         columnHelper.group({
           header: "More Info",
@@ -94,14 +99,23 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
             columnHelper.accessor("visits", {
               header: () => "Visits",
               footer: props => props.column.id,
+              meta: {
+                align: "right",
+              },
             }),
             columnHelper.accessor("status", {
               header: "Status",
               footer: props => props.column.id,
+              meta: {
+                align: "center",
+              },
             }),
             columnHelper.accessor("progress", {
               header: "Profile Progress",
               footer: props => props.column.id,
+              meta: {
+                align: "right",
+              },
             }),
           ],
         }),
@@ -111,6 +125,9 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
       id: "action",
       header: "Action",
       cell: () => h("button", "action"),
+      meta: {
+        align: "center",
+      },
     }),
   ]
 }
@@ -129,12 +146,13 @@ const columns = ref<DataTableColumns<Person>>([
       disabled: !row.getCanSelect(),
       onInput: (e) => { row.getToggleSelectedHandler()(e) },
     }),
+    enableResizing: false,
     size: 60,
   },
   {
     accessorKey: "firstName",
     cell: info => info.getValue(),
-    enableResizing: false,
+    enableResizing: true,
     size: 300,
     minSize: 0,
     enableHiding: false,
