@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, reactive, ref } from "vue"
+import { computed, h, reactive, ref, toValue } from "vue"
 import { type CreateDataTableColumns, DataTable, type DataTableColumns, type DataTableInst, useDataTable } from "./data-table"
 
 interface Person {
@@ -162,7 +162,15 @@ const checkedKeys = ref<string[]>([])
 const DataTableFunRef = ref<DataTableInst<Person>>()
 const DataTableArrRef = ref<DataTableInst<Person>>()
 
-const { visibilityState, onUpdateVisibilityState, columnVisibilityConfig } = useDataTable(DataTableFunRef)
+const tableInstance = computed(() => toValue(DataTableFunRef)?.tableInstance)
+
+const {
+  visibilityState,
+  onUpdateVisibilityState,
+  columnVisibilityConfig,
+  toggleAllColumnsVisible,
+  isAllVisible,
+} = useDataTable(tableInstance, { storage: "localStorage" })
 
 const pagination = reactive({
   pageIndex: 0,
@@ -175,6 +183,13 @@ const pagination = reactive({
   <div>
     <p>Data Table (Function)</p>
     <ul>
+      <li>
+        <label>
+          <input type="checkbox" :checked="isAllVisible" @input="toggleAllColumnsVisible(true)">
+          Toggle All
+        </label>
+        <hr>
+      </li>
       <li v-for="col of columnVisibilityConfig" :key="col.key">
         <label>
           <input type="checkbox" :checked="col.visibility" @input="col.onChange">

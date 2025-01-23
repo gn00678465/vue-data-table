@@ -14,9 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "../table"
+import { usePaginationAPI, type UsePaginationAPIReturn } from "./composables/usePaginationAPI"
+import { type PaginationProps, usePaginationPrepare } from "./composables/usePaginationPrepare"
 import { valueUpdater } from "./helpers"
-import { usePaginationAPI, type UsePaginationAPIReturn } from "./helpers/usePaginationAPI"
-import { type PaginationProps, usePaginationPrepare } from "./helpers/usePaginationPrepare"
 
 defineOptions({
   name: "DataTable",

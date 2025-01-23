@@ -1,7 +1,7 @@
 import type { PaginationState, Updater } from "@tanstack/vue-table"
 import type { MaybeRef, Ref } from "vue"
 import { readonly, ref, toValue } from "vue"
-import { valueUpdater } from "./valueUpdater"
+import { valueUpdater } from "../helpers"
 
 export interface PaginationProps extends Partial<PaginationState> {
   rowCount?: number

@@ -55,10 +55,10 @@ export class TableStorageManager {
 
   constructor(
     storageType: "localStorage" | "sessionStorage" | "cookie" = "localStorage",
-    storageKey: string,
+    tableId: string,
   ) {
     this.provider = this.createProvider(storageType)
-    this.storageKey = `${STORAGE_KEY_PREFIX}-${storageKey}`
+    this.storageKey = tableId ? `${STORAGE_KEY_PREFIX}-${tableId}` : `${STORAGE_KEY_PREFIX}`
   }
 
   private createProvider(type: string): StorageProvider {

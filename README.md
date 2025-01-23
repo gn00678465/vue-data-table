@@ -7,7 +7,7 @@
 - [ ] Column ordering
 - [ ] Column pinning
 - [ ] Column sizing
-- [ ] Column Visibility
+- [x] Column Visibility
 - [ ] Column filtering
 - [ ] Context menu
 
@@ -151,3 +151,44 @@ const columns = [
 | expandable | (row: Row<TData>) => boolean | undefined | |
 | render-expand | (row: Row<TData>) => VNodeChild | undefined | |
 | on-update:expanded-row-keys | (keys: Array<string>) => void | undefined | |
+
+### Columns visibility
+
+**Usage**
+```vue
+<!-- xxx.vue -->
+<script lang="ts">
+const dataTableRef = ref<DataTableInst>()
+const tableInstance = computed(() => toValue(DataTableFunRef)?.tableInstance)
+
+const {
+  visibilityState,
+  onUpdateVisibilityState,
+  columnVisibilityConfig,
+  toggleAllColumnsVisible,
+  isAllVisible,
+} = useDataTable(tableInstance, { storage: "localStorage" })
+</script>
+
+<template>
+  <DataTable
+    ref="dataTableRef"
+    :visibility-state="visibilityState"
+    :on-update-visibility-state="onUpdateVisibilityState"
+  />
+</template>
+```
+
+**Parameters**
+
+| Prop        | Type        | Description |
+| ----------- | ----------- | ----------- |
+| tableInstance | ComputedRef<Table<TData> \| undefined> | DataTable instance |
+| options | UseDataTableOptions |  |
+
+```ts
+export interface UseDataTableOptions {
+  storage?: "cookie" | "sessionStorage" | "localStorage"
+  tableId?: string
+}
+```
