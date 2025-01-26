@@ -1,8 +1,8 @@
 <script setup lang="tsx" generic="TData extends Record<string, any>">
-import type { Table as _Table, ColumnDef, ColumnHelper, Row } from "@tanstack/vue-table"
+import type { Table as _Table, ColumnDef, ColumnHelper, PaginationState, Row, RowSelectionState, Updater, VisibilityState } from "@tanstack/vue-table"
 import { createColumnHelper, FlexRender, getCoreRowModel, getPaginationRowModel, useVueTable } from "@tanstack/vue-table"
 import { clsx } from "clsx"
-import { computed, Fragment, onBeforeMount, reactive, toRefs, type VNodeChild } from "vue"
+import { computed, Fragment, onBeforeMount, toRefs, type VNodeChild } from "vue"
 import {
   Table,
   TableBody,
@@ -14,90 +14,144 @@ import {
   TableHeader,
   TableRow,
 } from "../table"
-import { useExpanded } from "./composables/useExpanded"
-import { type PaginationAPI, type PaginationProps, usePagination } from "./composables/usePagination"
-import { useRowSelection } from "./composables/useRowSelection"
+import { usePaginationAPI, type UsePaginationAPIReturn } from "./composables/usePaginationAPI"
+import { type PaginationProps, usePaginationPrepare } from "./composables/usePaginationPrepare"
 import css from "./css.module.css"
 import { initialDevMode, valueUpdater } from "./helpers"
+import { renderIconSeparator } from "./renderIconSeparator"
+
+defineOptions({
+  name: "DataTable",
+})
 
 const props = withDefaults(defineProps<DataTableProps<TData>>(), {
+  data: () => [],
   columns: undefined,
-  data: () => ([]),
-  expandable: undefined,
-  renderExpand: undefined,
+  loading: false,
+  captionSide: "bottom",
+  bordered: true,
+  rowKey: undefined,
   remote: false,
   pagination: false,
+  expandable: undefined,
+  visibilityState: undefined,
+  onUpdateVisibilityState: undefined,
+  columnSizingState: undefined,
+  onUpdateColumnSizingState: undefined,
 })
+
+const emits = defineEmits<{
+  "update:pagination": [pagination: PaginationState]
+}>()
 
 const slots = defineSlots<{
   caption: () => VNodeChild
   empty: () => VNodeChild
-  pagination: (api: PaginationAPI) => VNodeChild
+  pagination: (api: UsePaginationAPIReturn) => VNodeChild
 }>()
 
-const { data, columns, captionSide, bordered, loading, expandable, renderExpand } = toRefs(props)
+const { data, captionSide, bordered } = toRefs(props)
+
 const isEmpty = computed(() => !data.value || (Array.isArray(data.value) && !data.value.length))
-const columnspan = computed(() => table.getAllLeafColumns().length)
+const rowCount = computed(() => {
+  if (props.pagination && props.remote)
+    return props.pagination.rowCount
+  return undefined
+})
 
 const columnHelper = createColumnHelper<TData>()
 const _columns = computed(() => {
-  if (typeof columns.value === "function")
-    return columns.value(columnHelper)
-  if (Array.isArray(columns.value) && !!columns.value.length)
-    return columns.value
+  if (typeof props.columns === "function")
+    return props.columns(columnHelper)
+  if (Array.isArray(props.columns) && !!props.columns.length)
+    return props.columns
   return []
+})
+
+/** pagination */
+const { pagination, setPagination } = usePaginationPrepare(props.pagination, (arg) => {
+  emits("update:pagination", arg)
 })
 
 /** selection state */
 const [checkedRowKeys] = defineModel<string[]>("checked-row-keys", {
   default: [],
 })
-const _rowSelectionState = useRowSelection(checkedRowKeys)
+const _rowSelectionState = computed<RowSelectionState>({
+  get() {
+    return checkedRowKeys.value.reduce((obj, key) => {
+      obj[key] = true
+      return obj
+    }, {} as RowSelectionState)
+  },
+  set(v) {
+    checkedRowKeys.value = Object.keys(v)
+  },
+})
 
 /** expanded state */
 const [expandedRowKeys] = defineModel<string[]>("expanded-row-keys", {
   default: [],
 })
-const _expandedState = useExpanded(expandedRowKeys)
 
-/** pagination */
-const { rowCount, buildPaginationAPI } = usePagination(props)
+const _expandedState = computed({
+  get() {
+    return expandedRowKeys.value.reduce((obj, key) => {
+      obj[key] = true
+      return obj
+    }, {} as Record<string, boolean>)
+  },
+  set(v) {
+    expandedRowKeys.value = Object.keys(v)
+  },
+})
 
-const table = useVueTable({
-  // core
-  data,
-  get columns() { return _columns.value },
-  getCoreRowModel: getCoreRowModel(),
+/**
+ * table core
+ */
+const table = useVueTable<TData>({
   getRowId: props.rowKey,
-  // row selection
+  getCoreRowModel: getCoreRowModel(),
+  get getRowCanExpand() {
+    return props.expandable
+  },
   paginateExpandedRows: false,
-  enableRowSelection: true,
-  onRowSelectionChange: updateOrValue => valueUpdater(updateOrValue, _rowSelectionState),
-  // expanded
-  get getRowCanExpand() { return expandable.value },
   manualExpanding: true,
-  onExpandedChange: updateOrValue => valueUpdater(updateOrValue, _expandedState),
-  // pagination
   manualPagination: props.remote,
   getPaginationRowModel: !props.remote ? getPaginationRowModel() : undefined,
-  get rowCount() { return rowCount.value },
-  initialState: {
+  get rowCount() {
+    return rowCount.value
+  },
+  get columns() {
+    return _columns.value
+  },
+  data,
+  defaultColumn: {
+    size: 0,
+    minSize: 0,
+    maxSize: 0,
+  },
+  state: {
+    get rowSelection() { return _rowSelectionState.value },
     get pagination() {
       if (props.pagination) {
-        return {
-          pageIndex: props.pagination.pageIndex || 0,
-          pageSize: props.pagination.pageSize || 10,
-        }
+        return pagination.value
       }
       return undefined
     },
-  },
-  // state
-  state: {
-    get rowSelection() { return _rowSelectionState.value },
     get expanded() { return _expandedState.value },
+    get columnVisibility() { return props.visibilityState },
   },
+  enableRowSelection: true,
+  onRowSelectionChange: updateOrValue => valueUpdater(updateOrValue, _rowSelectionState),
+  onPaginationChange: setPagination,
+  onExpandedChange: updateOrValue => valueUpdater(updateOrValue, _expandedState),
+  onColumnVisibilityChange: props.onUpdateVisibilityState,
 })
+const columnspan = computed(() => {
+  return table.getAllLeafColumns().length
+})
+const paginationAPI = usePaginationAPI(table)
 
 /** Table colgroup render function */
 function renderColgroup(table: _Table<TData>) {
@@ -141,8 +195,7 @@ function renderTableHeader(table: _Table<TData>) {
                               onMousedown={header.getResizeHandler()}
                               onTouchstart={header.getResizeHandler()}
                             >
-                              {/* { renderIconSeparator({ class: css["data-table-icon-separator"] }) } */
-                              }
+                              { renderIconSeparator({ class: css["data-table-icon-separator"] }) }
                             </div>
                           )
                         }
@@ -176,11 +229,11 @@ function renderTableBody(table: _Table<TData>) {
           }
         </TableRow>
         {
-          renderExpand.value && row.getIsExpanded() && (
+          props.renderExpand && row.getIsExpanded() && (
             <TableRow>
               <TableCell colspan={row.getVisibleCells().length}>
                 <div class={css["data-table-cell"]}>
-                  { renderExpand.value(row) }
+                  { props.renderExpand(row) }
                 </div>
               </TableCell>
             </TableRow>
@@ -228,6 +281,10 @@ function renderTableFooter(table: _Table<TData>) {
   )
 }
 
+defineExpose<DataTableInst<TData>>({
+  tableInstance: table,
+})
+
 onBeforeMount(() => {
   initialDevMode(table)
 })
@@ -254,6 +311,12 @@ interface DataTableExpandProps<TData extends Record<string, any>> {
   renderExpand?: (row: Row<TData>) => VNodeChild
 }
 
+/** extra props */
+interface DataTableExtraProps {
+  visibilityState?: VisibilityState
+  onUpdateVisibilityState?: (updateOrValue: Updater<VisibilityState>) => void
+}
+
 export type DataTableColumns<TData extends Record<string, any>> = ColumnDef<TData>[]
 
 export type CreateDataTableColumns<TData extends Record<string, any>> = (helper: ColumnHelper<TData>) => DataTableColumns<TData>
@@ -261,8 +324,13 @@ export type CreateDataTableColumns<TData extends Record<string, any>> = (helper:
 export interface DataTableProps<TData extends Record<string, any>> extends
   DataTableBaseProps<TData>,
   DataTablePaginationProps,
-  DataTableExpandProps<TData> {
+  DataTableExpandProps<TData>,
+  DataTableExtraProps {
   columns?: DataTableColumns<TData> | CreateDataTableColumns<TData>
+}
+
+export interface DataTableInst<TData extends Record<string, any>> {
+  tableInstance: _Table<TData>
 }
 </script>
 
@@ -272,10 +340,10 @@ export interface DataTableProps<TData extends Record<string, any>> extends
       <Table :class="clsx('w-full', [bordered && 'data-table--bordered'])">
         <TableCaption
           v-if="!!slots?.caption"
-          :class="{
-            [css['data-table-caption--top']]: captionSide === 'top',
-            [css['data-table-caption--bottom']]: captionSide === 'bottom',
-          }"
+          :class="clsx(
+            { 'cation-top': captionSide === 'top' },
+            { 'cation-bottom': captionSide === 'bottom' },
+          )"
         >
           <slot name="caption" />
         </TableCaption>
@@ -296,11 +364,13 @@ export interface DataTableProps<TData extends Record<string, any>> extends
         <component :is="() => renderTableFooter(table)" v-if="!isEmpty" />
       </Table>
     </div>
-    <slot name="pagination" v-bind="buildPaginationAPI(table)" />
+    <slot name="pagination" v-bind="paginationAPI" />
   </div>
 </template>
 
-<style scoped>
+<style>
+@import url('./assets/reset.css');
+
 :where(.overflow-auto) {
   overflow: auto;
 }

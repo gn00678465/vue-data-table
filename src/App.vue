@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, h, reactive, ref, toValue } from "vue"
-import { type CreateDataTableColumns, DataTable, type DataTableColumns, type DataTableInst, useDataTable } from "./data-table"
+import { faker } from "@faker-js/faker"
+import { computed, h, reactive, ref } from "vue"
+import { type CreateDataTableColumns, DataTable, type DataTableColumns } from "./data-table"
 
 interface Person {
+  _id: string
   firstName: string
   lastName: string
   age: number
@@ -11,32 +13,17 @@ interface Person {
   progress: number
 }
 
-const defaultData: Person[] = [
-  {
-    firstName: "tanner",
-    lastName: "linsley",
-    age: 24,
-    visits: 100,
-    status: "In Relationship",
-    progress: 50,
-  },
-  {
-    firstName: "tandy",
-    lastName: "miller",
-    age: 40,
-    visits: 40,
-    status: "Single",
-    progress: 80,
-  },
-  {
-    firstName: "joe",
-    lastName: "dirte",
-    age: 45,
-    visits: 20,
-    status: "Complicated",
-    progress: 10,
-  },
-]
+function createRandomUser(): Person {
+  return {
+    _id: faker.string.uuid(),
+    firstName: faker.person.firstName(),
+    lastName: faker.person.lastName(),
+    age: faker.helpers.rangeToNumber({ min: 20, max: 50 }),
+    status: faker.helpers.arrayElement(["In Relationship", "Single", "Complicated"]),
+    progress: faker.helpers.rangeToNumber({ min: 10, max: 100 }),
+    visits: faker.number.int({ max: 10000 }),
+  }
+}
 
 const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
   return [
@@ -144,7 +131,7 @@ const columns = ref<DataTableColumns<Person>>([
       type: "checkbox",
       checked: row.getIsSelected(),
       disabled: !row.getCanSelect(),
-      onInput: (e) => { row.getToggleSelectedHandler()(e) },
+      onInput: row.getToggleSelectedHandler(),
     }),
     enableResizing: false,
     size: 60,
@@ -172,23 +159,27 @@ const columns = ref<DataTableColumns<Person>>([
   },
 ])
 
-const data = ref(defaultData)
+const data = ref<Person[]>([])
+
+window.setTimeout(() => (
+  data.value = [...Array.from({ length: 15 })].map(() => createRandomUser())
+), 5000)
 
 const expandedKeys = ref<string[]>([])
 const checkedKeys = ref<string[]>([])
 
-const DataTableFunRef = ref<DataTableInst<Person>>()
-const DataTableArrRef = ref<DataTableInst<Person>>()
+// const DataTableFunRef = ref<DataTableInst<Person>>()
+// const DataTableArrRef = ref<DataTableInst<Person>>()
 
-const tableInstance = computed(() => toValue(DataTableFunRef)?.tableInstance)
+// const tableInstance = computed(() => toValue(DataTableFunRef)?.tableInstance)
 
-const {
-  visibilityState,
-  onUpdateVisibilityState,
-  columnVisibilityConfig,
-  toggleAllColumnsVisible,
-  isAllVisible,
-} = useDataTable(tableInstance, { storage: "localStorage" })
+// const {
+//   visibilityState,
+//   onUpdateVisibilityState,
+//   columnVisibilityConfig,
+//   toggleAllColumnsVisible,
+//   isAllVisible,
+// } = useDataTable(tableInstance, { storage: "localStorage" })
 
 const pagination = reactive({
   pageIndex: 0,
@@ -200,7 +191,7 @@ const pagination = reactive({
 <template>
   <div>
     <p>Data Table (Function)</p>
-    <ul>
+    <!-- <ul>
       <li>
         <label>
           <input type="checkbox" :checked="isAllVisible" @input="toggleAllColumnsVisible(true)">
@@ -214,35 +205,28 @@ const pagination = reactive({
           {{ col.key }}
         </label>
       </li>
-    </ul>
+    </ul> -->
     <DataTable
-      ref="DataTableFunRef"
       v-model:expanded-row-keys="expandedKeys"
       :columns="createColumns"
       :data="data"
       :loading="false"
-      :row-key="(row) => row.firstName"
-      :expandable="() => { return true }"
-      :render-expand="(row) => h('pre', JSON.stringify(row.original))"
-      :visibility-state="visibilityState"
-      :on-update-visibility-state="onUpdateVisibilityState"
+      :row-key="(row) => row._id"
       style="--border-color: #000"
+      :expandable="() => true"
+      :render-expand="(row) => h('pre', JSON.stringify(row.original, null, 2))"
     />
     <p>Expanded Keys: {{ expandedKeys }}</p>
     <br>
     <p>Data Table (Array)</p>
     <DataTable
-      ref="DataTableArrRef"
       v-model:checked-row-keys="checkedKeys"
       :columns="columns"
       :data="data"
       :loading="false"
-      :row-key="(row) => row.firstName"
-      :remote="true"
-      caption-side="bottom"
-      style="--border-color: #000"
-      :visibility-state="visibilityState"
+      :row-key="(row) => row._id"
       :pagination="pagination"
+      :remote="true"
     >
       <template #pagination="api">
         <div class="pagination">
@@ -271,7 +255,7 @@ const pagination = reactive({
           <button
             class="border rounded p-1"
             :disabled="!api.getCanNextPage()"
-            @click="() => api.setPageIndex(api.pageCount - 1)"
+            @click="() => api.setPageIndex(api.pageCount() - 1)"
           >
             »
           </button>
@@ -279,7 +263,7 @@ const pagination = reactive({
             <div>Total</div>
             <strong>
               {{ api.page + 1 }} of
-              {{ api.rowCount }}
+              {{ api.rowCount() }}
             </strong>
           </span>
         </div>
@@ -287,19 +271,6 @@ const pagination = reactive({
     </DataTable>
     <p>Checked Keys: {{ checkedKeys }}</p>
     <br>
-    <!-- <p>Empty Data Table (Function)</p>
-    <DataTable :columns="createColumns" :data="[]" :loading="false">
-      <template #empty>
-        empty
-      </template>
-    </DataTable>
-    <br>
-    <p>Empty Data Table (Array)</p>
-    <DataTable :columns="columns" :data="[]" :loading="false">
-      <template #empty>
-        empty
-      </template>
-    </DataTable> -->
   </div>
 </template>
 

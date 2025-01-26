@@ -1,7 +1,5 @@
 declare const styles: {
   readonly "data-table--bordered": string;
-  readonly "data-table-caption--bottom": string;
-  readonly "data-table-caption--top": string;
   readonly "data-table-cell": string;
   readonly "data-table-col-separator": string;
   readonly "data-table-col-separator--resize": string;

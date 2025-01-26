@@ -16,11 +16,13 @@
   },
   "dependencies": {
     "@tanstack/vue-table": "^8.20.5",
+    "@vueuse/core": "^12.5.0",
     "clsx": "^2.1.1",
     "vue": "latest"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.14.0",
+    "@faker-js/faker": "^9.4.0",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.10.7",
     "@vitejs/plugin-vue": "^5.2.1",

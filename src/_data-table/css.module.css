@@ -20,14 +20,6 @@
   cursor: col-resize;
 }
 
-:where(.data-table-caption--top) {
-  caption-side: top;
-}
-
-:where(.data-table-caption--bottom) {
-  caption-side: bottom;
-}
-
 :where(.data-table-col-separator--resize) {
 
 }
