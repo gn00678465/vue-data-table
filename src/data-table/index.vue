@@ -2,7 +2,7 @@
 import type { Table as _Table, ColumnDef, ColumnHelper, Row } from "@tanstack/vue-table"
 import { createColumnHelper, FlexRender, getCoreRowModel, getPaginationRowModel, useVueTable } from "@tanstack/vue-table"
 import { clsx } from "clsx"
-import { computed, Fragment, onBeforeMount, reactive, toRefs, type VNodeChild } from "vue"
+import { computed, Fragment, onBeforeMount, toRefs, type VNodeChild } from "vue"
 import {
   Table,
   TableBody,
@@ -17,6 +17,7 @@ import {
 import { useExpanded } from "./composables/useExpanded"
 import { type PaginationAPI, type PaginationProps, usePagination } from "./composables/usePagination"
 import { useRowSelection } from "./composables/useRowSelection"
+import { type ColumnVisibilityConfig, useTableVisibility } from "./composables/useTableVisibility"
 import css from "./css.module.css"
 import { initialDevMode, valueUpdater } from "./helpers"
 
@@ -63,6 +64,9 @@ const _expandedState = useExpanded(expandedRowKeys)
 /** pagination */
 const { rowCount, buildPaginationAPI } = usePagination(props)
 
+/** columns visibility */
+const { visibilityState, onUpdateVisibilityState, buildVisibilityConfig } = useTableVisibility()
+
 const table = useVueTable({
   // core
   data,
@@ -81,6 +85,8 @@ const table = useVueTable({
   manualPagination: props.remote,
   getPaginationRowModel: !props.remote ? getPaginationRowModel() : undefined,
   get rowCount() { return rowCount.value },
+  // columns visibility
+  onColumnVisibilityChange: onUpdateVisibilityState,
   initialState: {
     get pagination() {
       if (props.pagination) {
@@ -96,6 +102,7 @@ const table = useVueTable({
   state: {
     get rowSelection() { return _rowSelectionState.value },
     get expanded() { return _expandedState.value },
+    get columnVisibility() { return visibilityState.value },
   },
 })
 
@@ -228,6 +235,12 @@ function renderTableFooter(table: _Table<TData>) {
   )
 }
 
+/** expose */
+defineExpose({
+  /** columns visibility expose */
+  ...toRefs(buildVisibilityConfig(table)),
+})
+
 onBeforeMount(() => {
   initialDevMode(table)
 })
@@ -264,6 +277,8 @@ export interface DataTableProps<TData extends Record<string, any>> extends
   DataTableExpandProps<TData> {
   columns?: DataTableColumns<TData> | CreateDataTableColumns<TData>
 }
+
+export interface DataTableInst extends ColumnVisibilityConfig {}
 </script>
 
 <template>

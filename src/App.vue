@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { faker } from "@faker-js/faker"
 import { computed, h, reactive, ref } from "vue"
-import { type CreateDataTableColumns, DataTable, type DataTableColumns } from "./data-table"
+import { type CreateDataTableColumns, DataTable, type DataTableColumns, type DataTableInst } from "./data-table"
 
 interface Person {
   _id: string
@@ -41,6 +41,18 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
       enableResizing: false,
       size: 60,
     }),
+    {
+      accessorKey: "_id",
+      header: "ID",
+      cell: info => info.getValue(),
+      enableResizing: true,
+      size: 300,
+      minSize: 0,
+      meta: {
+        class: "w-full",
+        titleAlign: "left",
+      },
+    },
     {
       header: "Name",
       footer: props => props.column.id,
@@ -168,18 +180,8 @@ window.setTimeout(() => (
 const expandedKeys = ref<string[]>([])
 const checkedKeys = ref<string[]>([])
 
-// const DataTableFunRef = ref<DataTableInst<Person>>()
-// const DataTableArrRef = ref<DataTableInst<Person>>()
-
-// const tableInstance = computed(() => toValue(DataTableFunRef)?.tableInstance)
-
-// const {
-//   visibilityState,
-//   onUpdateVisibilityState,
-//   columnVisibilityConfig,
-//   toggleAllColumnsVisible,
-//   isAllVisible,
-// } = useDataTable(tableInstance, { storage: "localStorage" })
+const DataTableFunRef = ref<DataTableInst>()
+const DataTableArrRef = ref<DataTableInst>()
 
 const pagination = reactive({
   pageIndex: 0,
@@ -191,22 +193,23 @@ const pagination = reactive({
 <template>
   <div>
     <p>Data Table (Function)</p>
-    <!-- <ul>
+    <ul>
       <li>
         <label>
-          <input type="checkbox" :checked="isAllVisible" @input="toggleAllColumnsVisible(true)">
+          <input type="checkbox" :checked="DataTableFunRef?.isAllVisible" @input="DataTableFunRef?.toggleAllColumnsVisible(true)">
           Toggle All
         </label>
         <hr>
       </li>
-      <li v-for="col of columnVisibilityConfig" :key="col.key">
+      <li v-for="col of DataTableFunRef?.columnVisibilityConfig" :key="col.key">
         <label>
           <input type="checkbox" :checked="col.visibility" @input="col.onChange">
           {{ col.key }}
         </label>
       </li>
-    </ul> -->
+    </ul>
     <DataTable
+      ref="DataTableFunRef"
       v-model:expanded-row-keys="expandedKeys"
       :columns="createColumns"
       :data="data"
@@ -220,6 +223,7 @@ const pagination = reactive({
     <br>
     <p>Data Table (Array)</p>
     <DataTable
+      ref="DataTableArrRef"
       v-model:checked-row-keys="checkedKeys"
       :columns="columns"
       :data="data"
