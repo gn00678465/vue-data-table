@@ -1,67 +1,7 @@
 import type { Column, Table, Updater, VisibilityState } from "@tanstack/vue-table"
 import type { Ref } from "vue"
-import { computed, reactive, ref, watch } from "vue"
-import { valueUpdater } from "../helpers"
-
-// 單例存儲實例
-class VisibilityStorage {
-  private static instance: VisibilityStorage | null = null
-  private storage: Storage
-  private cache: Map<string, Ref<VisibilityState>>
-
-  private constructor(storage: Storage = localStorage) {
-    this.storage = storage
-    this.cache = new Map()
-  }
-
-  static getInstance(): VisibilityStorage {
-    if (!this.instance) {
-      this.instance = new VisibilityStorage()
-    }
-    return this.instance
-  }
-
-  getState(key: string): Ref<VisibilityState> {
-    if (this.cache.has(key)) {
-      return this.cache.get(key)!
-    }
-
-    const storedState = this.loadState(key)
-    const state = ref<VisibilityState>(storedState)
-
-    watch(state, (newState) => {
-      this.saveState(key, newState)
-    }, { deep: true })
-
-    this.cache.set(key, state)
-    return state
-  }
-
-  private loadState(key: string): VisibilityState {
-    try {
-      const stored = this.storage.getItem(key)
-      return stored ? JSON.parse(stored) : {}
-    }
-    catch (error) {
-      console.error(`Error loading visibility state: ${error}`)
-      return {}
-    }
-  }
-
-  private saveState(key: string, state: VisibilityState): void {
-    try {
-      this.storage.setItem(key, JSON.stringify(state))
-    }
-    catch (error) {
-      console.error(`Error saving visibility state: ${error}`)
-    }
-  }
-
-  clearState(key: string): void {
-    this.storage.removeItem(key)
-    this.cache.delete(key)
-  }
-}
+import { computed, reactive, ref } from "vue"
+import { PersistentStorage, valueUpdater } from "../helpers"
 
 export interface UseTableVisibilityOptions {
   /**
@@ -108,11 +48,11 @@ export function useTableVisibility(
   options: UseTableVisibilityOptions = {},
 ): UseTableVisibilityReturn {
   const { persistKey } = options
-  const storage = VisibilityStorage.getInstance()
+  const storage = PersistentStorage.getInstance()
 
   // 如果提供了 persistKey，使用持久化的狀態
   const _visibilityState = persistKey
-    ? storage.getState(persistKey)
+    ? storage.getState(persistKey, "visibilityState", {})
     : ref<VisibilityState>({})
 
   // 更新狀態的方法
@@ -135,7 +75,6 @@ export function useTableVisibility(
   /**
    * visibility config
    * @param table
-   * @returns
    */
   function buildVisibilityConfig<TData extends Record<string, any>>(table: Table<TData>): ColumnVisibilityConfig {
     return reactive({
