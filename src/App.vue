@@ -40,6 +40,9 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
       },
       enableResizing: false,
       size: 60,
+      meta: {
+        fixed: "left",
+      },
     }),
     {
       accessorKey: "_id",
@@ -59,6 +62,7 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
       columns: [
         {
           accessorKey: "firstName",
+          id: "firstName",
           cell: info => info.getValue(),
           footer: props => props.column.id,
           enableResizing: true,
@@ -67,6 +71,7 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
           meta: {
             class: "w-full",
             titleAlign: "left",
+            fixed: "right",
           },
         },
         {
@@ -77,6 +82,9 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
           },
           header: () => h("span", "Last Name"),
           footer: props => props.column.id,
+          meta: {
+            fixed: "left",
+          },
         },
       ],
     },
@@ -126,6 +134,7 @@ const createColumns: CreateDataTableColumns<Person> = (columnHelper) => {
       cell: () => h("button", "action"),
       meta: {
         align: "center",
+        fixed: "right",
       },
     }),
   ]
@@ -180,8 +189,8 @@ window.setTimeout(() => (
 const expandedKeys = ref<string[]>([])
 const checkedKeys = ref<string[]>([])
 
-const DataTableFunRef = ref<DataTableInst>()
-const DataTableArrRef = ref<DataTableInst>()
+const DataTableFunRef = ref<DataTableInst<Person>>()
+const DataTableArrRef = ref<DataTableInst<Person>>()
 
 const pagination = reactive({
   pageIndex: 0,

@@ -1,9 +1,9 @@
 import type { Column, Table, Updater, VisibilityState } from "@tanstack/vue-table"
 import type { Ref } from "vue"
-import { computed, reactive, ref } from "vue"
+import { computed, reactive, readonly, ref } from "vue"
 import { PersistentStorage, valueUpdater } from "../helpers"
 
-export interface UseTableVisibilityOptions {
+export interface UseColumnVisibilityOptions {
   /**
    * 用於持久化存儲的鍵名
    * 如果不提供，則不會進行持久化
@@ -11,14 +11,14 @@ export interface UseTableVisibilityOptions {
   persistKey?: string
 }
 
-export interface ColumnVisibilityConfig {
+export interface ColumnVisibilityAPIs {
   isAllVisible: boolean
   isSomeVisible: boolean
   toggleAllColumnsVisible: (value?: boolean) => void
   columnVisibilityConfig: ColumnVisibility[]
 }
 
-export interface UseTableVisibilityReturn {
+export interface UseColumnVisibilityReturn {
   /**
    * 列可見性狀態
    */
@@ -36,7 +36,7 @@ export interface UseTableVisibilityReturn {
    * @param table
    * @returns
    */
-  buildVisibilityConfig: <TData extends Record<string, any>>(table: Table<TData>) => ColumnVisibilityConfig
+  buildVisibilityAPIs: <TData extends Record<string, any>>(table: Table<TData>) => ColumnVisibilityAPIs
 }
 
 /**
@@ -44,9 +44,9 @@ export interface UseTableVisibilityReturn {
  * @param options - 配置選項
  * @returns 列可見性控制相關的狀態和方法
  */
-export function useTableVisibility(
-  options: UseTableVisibilityOptions = {},
-): UseTableVisibilityReturn {
+export function useColumnVisibility(
+  options: UseColumnVisibilityOptions = {},
+): UseColumnVisibilityReturn {
   const { persistKey } = options
   const storage = PersistentStorage.getInstance()
 
@@ -76,7 +76,7 @@ export function useTableVisibility(
    * visibility config
    * @param table
    */
-  function buildVisibilityConfig<TData extends Record<string, any>>(table: Table<TData>): ColumnVisibilityConfig {
+  function buildVisibilityAPIs<TData extends Record<string, any>>(table: Table<TData>): ColumnVisibilityAPIs {
     return reactive({
       isAllVisible: computed(() => table.getIsAllColumnsVisible()),
       isSomeVisible: computed(() => table.getIsSomeColumnsVisible()),
@@ -86,7 +86,7 @@ export function useTableVisibility(
   }
 
   return {
-    visibilityState: _visibilityState,
+    visibilityState: readonly(_visibilityState),
     onUpdateVisibilityState,
     clearVisibilityState: () => {
       if (persistKey) {
@@ -94,7 +94,7 @@ export function useTableVisibility(
         _visibilityState.value = {}
       }
     },
-    buildVisibilityConfig,
+    buildVisibilityAPIs,
   }
 }
 

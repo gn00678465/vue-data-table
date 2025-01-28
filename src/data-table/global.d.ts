@@ -6,5 +6,6 @@ declare module "@tanstack/vue-table" {
     style?: string | import("vue").CSSProperties
     titleAlign?: "left" | "right" | "center"
     align?: "left" | "right" | "center"
+    fixed?: import("@tanstack/vue-table").ColumnPinningPosition
   }
 }

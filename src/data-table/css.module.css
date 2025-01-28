@@ -2,8 +2,19 @@
 
 :where(.data-table-header) {
   position: relative;
-  display: flex;
-  align-items: center;
+  z-index: 0;
+}
+
+:where(.data-table-header--left) {
+  position: sticky;
+  z-index: 1;
+  left: var(--left);
+}
+
+:where(.data-table-header--right) {
+  position: sticky;
+  z-index: 1;
+  right: var(--right);
 }
 
 :where(.data-table-col-separator) {
@@ -45,6 +56,12 @@
 }
 
 :where(.data-table-cell) {}
+
+:where(.data-table-empty) {
+}
+
+:where(.data-table-loading) {
+}
 
 :where(.data-table-header,.data-table-cell) {
   padding: 0px 8px;

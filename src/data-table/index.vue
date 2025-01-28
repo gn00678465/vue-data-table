@@ -1,5 +1,5 @@
 <script setup lang="tsx" generic="TData extends Record<string, any>">
-import type { Table as _Table, ColumnDef, ColumnHelper, Row } from "@tanstack/vue-table"
+import type { Table as _Table, Column, ColumnDef, ColumnHelper, Row } from "@tanstack/vue-table"
 import { createColumnHelper, FlexRender, getCoreRowModel, getPaginationRowModel, useVueTable } from "@tanstack/vue-table"
 import { clsx } from "clsx"
 import { computed, Fragment, onBeforeMount, toRefs, type VNodeChild } from "vue"
@@ -14,12 +14,17 @@ import {
   TableHeader,
   TableRow,
 } from "../table"
+import { type ColumnPinningAPIs, useColumnPinning } from "./composables/useColumnPinning"
+import { type ColumnVisibilityAPIs, useColumnVisibility } from "./composables/useColumnVisibility"
 import { useExpanded } from "./composables/useExpanded"
 import { type PaginationAPI, type PaginationProps, usePagination } from "./composables/usePagination"
 import { useRowSelection } from "./composables/useRowSelection"
-import { type ColumnVisibilityConfig, useTableVisibility } from "./composables/useTableVisibility"
 import css from "./css.module.css"
 import { initialDevMode, valueUpdater } from "./helpers"
+
+defineOptions({
+  name: "DataTable",
+})
 
 const props = withDefaults(defineProps<DataTableProps<TData>>(), {
   columns: undefined,
@@ -64,8 +69,11 @@ const _expandedState = useExpanded(expandedRowKeys)
 /** pagination */
 const { rowCount, buildPaginationAPI } = usePagination(props)
 
-/** columns visibility */
-const { visibilityState, onUpdateVisibilityState, buildVisibilityConfig } = useTableVisibility()
+/** column visibility */
+const { visibilityState, onUpdateVisibilityState, buildVisibilityAPIs } = useColumnVisibility()
+
+/** column pinning */
+const { pinningState, onUpdatePinningState, getCommonPinningStyles, buildPinningAPIs } = useColumnPinning(_columns)
 
 const table = useVueTable({
   // core
@@ -85,7 +93,7 @@ const table = useVueTable({
   manualPagination: props.remote,
   getPaginationRowModel: !props.remote ? getPaginationRowModel() : undefined,
   get rowCount() { return rowCount.value },
-  // columns visibility
+  // column visibility
   onColumnVisibilityChange: onUpdateVisibilityState,
   initialState: {
     get pagination() {
@@ -98,13 +106,18 @@ const table = useVueTable({
       return undefined
     },
   },
+  // column pinning
+  onColumnPinningChange: onUpdatePinningState,
   // state
   state: {
     get rowSelection() { return _rowSelectionState.value },
     get expanded() { return _expandedState.value },
     get columnVisibility() { return visibilityState.value },
+    get columnPinning() { return pinningState.value },
   },
 })
+
+const allLeafColumns = computed(() => table.getAllLeafColumns())
 
 /** Table colgroup render function */
 function renderColgroup(table: _Table<TData>) {
@@ -132,6 +145,12 @@ function renderTableHeader(table: _Table<TData>) {
               key={header.id}
               colspan={header.colSpan || 1}
               rowspan={header.rowSpan || 1}
+              style={getCommonPinningStyles(header.column)}
+              class={{
+                [css["data-table-header--left"]]: header.column.getIsPinned() === "left",
+                [css["data-table-header--right"]]: header.column.getIsPinned() === "right",
+                [css["data-table-header"]]: !header.column.getIsPinned(),
+              }}
             >
               {
                 header.isPlaceholder
@@ -139,7 +158,10 @@ function renderTableHeader(table: _Table<TData>) {
                   : (
                       <div class={css["data-table-header"]}>
                         <div>
-                          <FlexRender render={header.column.columnDef.header} props={header.getContext()} />
+                          <FlexRender
+                            render={header.column.columnDef.header}
+                            props={header.getContext()}
+                          />
                         </div>
                         {
                           header.column.getCanResize() && !header.subHeaders.length && (
@@ -237,8 +259,11 @@ function renderTableFooter(table: _Table<TData>) {
 
 /** expose */
 defineExpose({
-  /** columns visibility expose */
-  ...toRefs(buildVisibilityConfig(table)),
+  columnsConfig: allLeafColumns,
+  /** column visibility APIs */
+  ...toRefs(buildVisibilityAPIs(table)),
+  /** column pinning APIs */
+  ...toRefs(buildPinningAPIs(table)),
 })
 
 onBeforeMount(() => {
@@ -278,7 +303,11 @@ export interface DataTableProps<TData extends Record<string, any>> extends
   columns?: DataTableColumns<TData> | CreateDataTableColumns<TData>
 }
 
-export interface DataTableInst extends ColumnVisibilityConfig {}
+export interface DataTableInst<TData extends Record<string, any>> extends
+  ColumnVisibilityAPIs,
+  ColumnPinningAPIs {
+  columnsConfig: Column<TData>
+}
 </script>
 
 <template>
