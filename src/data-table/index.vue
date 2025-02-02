@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "../table"
+import { useColumnOrder } from "./composables/useColumnOrder"
 import { type ColumnPinningAPIs, useColumnPinning } from "./composables/useColumnPinning"
 import { type ColumnVisibilityAPIs, useColumnVisibility } from "./composables/useColumnVisibility"
 import { useExpanded } from "./composables/useExpanded"
@@ -75,6 +76,9 @@ const { visibilityState, onUpdateVisibilityState, buildVisibilityAPIs } = useCol
 /** column pinning */
 const { pinningState, onUpdatePinningState, getCommonPinningStyles, buildPinningAPIs } = useColumnPinning(_columns)
 
+/** column order */
+const { orderState, onUpdateOrderState } = useColumnOrder()
+
 const table = useVueTable({
   // core
   data,
@@ -108,12 +112,15 @@ const table = useVueTable({
   },
   // column pinning
   onColumnPinningChange: onUpdatePinningState,
+  // column order
+  onColumnOrderChange: onUpdateOrderState,
   // state
   state: {
     get rowSelection() { return _rowSelectionState.value },
     get expanded() { return _expandedState.value },
     get columnVisibility() { return visibilityState.value },
     get columnPinning() { return pinningState.value },
+    get columnOrder() { return orderState.value },
   },
 })
 
