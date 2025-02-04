@@ -17,7 +17,6 @@
   "dependencies": {
     "@tanstack/vue-table": "^8.20.5",
     "@vueuse/core": "^12.5.0",
-    "clsx": "^2.1.1",
     "vue": "latest"
   },
   "devDependencies": {
@@ -31,7 +30,6 @@
     "eslint": "^9.18.0",
     "eslint-plugin-vue": "^9.32.0",
     "jsdom": "^25.0.1",
-    "tailwind-merge": "^2.6.0",
     "typed-css-modules": "^0.9.1",
     "typescript": "~5.6.2",
     "vite": "^6.0.5",
